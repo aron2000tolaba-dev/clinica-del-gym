@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
-<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Clínica Gym">
 <title>Clínica del Gym</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -333,6 +333,18 @@ function firmaRecortada(cv){
   const k = Math.min(1, 360 / (x1 - x0)), c2 = document.createElement('canvas'); c2.width = (x1 - x0) * k; c2.height = (y1 - y0) * k;
   c2.getContext('2d').drawImage(cv, x0, y0, x1 - x0, y1 - y0, 0, 0, c2.width, c2.height); return c2.toDataURL('image/png');
 }
+/* ===== recordatorio del próximo mantenimiento (cliente por cliente) ===== */
+function sumarMeses(n){ const d = new Date(); d.setMonth(d.getMonth() + n); return ymdLocal(d); }
+function recordatorioCard(c, enOrden){
+  const on = c.recordatorios !== false, f = c.proxService;
+  const chips = `<div class="chips" style="flex-wrap:wrap">${[[3, '3 meses'], [6, '6 meses'], [12, '1 año']].map(([m, t]) => `<button class="chip ${f === sumarMeses(m) ? 'on' : ''}" data-a="recSet" data-id="${c.id}" data-v="${m}">${t}</button>`).join('')}</div>
+    <label class="f"><span class="small muted b">O elegí la fecha</span><input class="in" type="date" value="${f || ''}" data-in="recFecha" data-k="${c.id}"></label>`;
+  if(!on) return `<div class="card" style="gap:8px"><div class="between"><span class="b">Próximo mantenimiento</span><span class="pill p-gray">Sin recordatorio</span></div>
+    <span class="small muted b">A este cliente no se le mandan recordatorios.</span><button class="btn btn-soft" data-a="recOn" data-id="${c.id}">Recordar a este cliente</button></div>`;
+  return `<div class="card" style="gap:8px;${enOrden && !f ? 'border:2px solid var(--accent)' : ''}"><div class="between"><span class="b">${enOrden && !f ? '¿Le recordamos el próximo mantenimiento?' : 'Próximo mantenimiento'}</span><span class="pill ${f ? 'p-good' : 'p-blue'}">${f ? 'Programado' : 'Al año'}</span></div>
+    <span class="small b" style="color:var(--ink-2)">${f ? 'Se le recuerda el ' + diaLargo(f).toLowerCase() + ' por WhatsApp (te aparece en Avisos).' : 'Si no elegís fecha, se le recuerda al año de su último trabajo.'}</span>
+    ${chips}<button class="btn btn-line btn-sm" data-a="recOff" data-id="${c.id}">No recordarle</button></div>`;
+}
 function totalCon(o, medio){ return totales({...o, medioPago:medio}).total; }
 const MEDIOS = () => ['Efectivo', 'Transferencia a ' + repo.db.config.cuentaLibre, 'Transferencia a ' + repo.db.config.cuentaPercep, 'Tarjeta'];
 function notaMedio(o){ const cf = repo.db.config, m = o.medioPago || 'Efectivo', tt = totales(o);
@@ -362,7 +374,7 @@ function header({kicker='', titulo, atras=null, derecha='', extra=''}){
 }
 function nav(){
   const n = [['inicio','Inicio'],['clientes','Clientes'],['agenda','Agenda'],['inventario','Inventario'],['mas','Más']];
-  const act = TOP.includes(S.view) ? S.view : ({ficha:'clientes',clienteForm:'clientes',orden:'clientes',ordenNueva:'clientes',doc:'clientes',itemForm:'inventario',provForm:'inventario',config:'mas',historial:'mas',mapa:'clientes',avisos:'mas',vehiculo:'mas',herramientas:'mas',abonos:'mas',abonoForm:'mas',certMant:'mas',desuso:'mas',desusoForm:'mas',empleados:'mas',empleado:'mas',resumen:'mas',sorteo:'mas',vistaCliente:'clientes',certReventa:'clientes',catalogo:'clientes',modelos:'mas',modelo:'mas',modeloForm:'mas',numeros:'mas',deudores:'mas',gasto:'inicio',visitaForm:'agenda'}[S.view] || 'inicio');
+  const act = TOP.includes(S.view) ? S.view : ({ficha:'clientes',clienteForm:'clientes',orden:'clientes',ordenNueva:'clientes',doc:'clientes',itemForm:'inventario',provForm:'inventario',config:'mas',ordenEditar:'clientes',historial:'mas',mapa:'clientes',avisos:'mas',vehiculo:'mas',herramientas:'mas',abonos:'mas',abonoForm:'mas',certMant:'mas',desuso:'mas',desusoForm:'mas',empleados:'mas',empleado:'mas',resumen:'mas',sorteo:'mas',vistaCliente:'clientes',certReventa:'clientes',catalogo:'clientes',modelos:'mas',modelo:'mas',modeloForm:'mas',numeros:'mas',deudores:'mas',gasto:'inicio',visitaForm:'agenda'}[S.view] || 'inicio');
   return `<nav class="bottom">${n.map(([k,t]) => `<button class="${k===act?'on':''}" data-a="nav" data-v="${k}">${ic(k,24)}${t}</button>`).join('')}</nav>`;
 }
 function tabs(clave, nombres){
@@ -543,6 +555,7 @@ V.ficha = () => {
       ${c.descPend ? `<div class="note" style="background:var(--good-soft);color:var(--good-ink);font-weight:700">Tiene ${c.descPend.pct} % de descuento en el próximo service por recomendar a ${esc(c.descPend.por)}.</div>` : ''}
       ${c.resena ? `<span class="small b" style="color:var(--good-ink)">Dejó reseña en Google el ${fecha(c.resena)}</span>` : c.resenaPedida ? `<div class="between"><span class="small muted b">Se le pidió reseña el ${fecha(c.resenaPedida)} (código ${esc(c.codResena || '')})</span><button class="btn btn-soft btn-sm" data-a="resenaOk" data-id="${c.id}">Ya la dejó</button></div>` : ''}
     </div>
+    ${recordatorioCard(c)}
     <div class="between"><h2>Equipos</h2><button class="btn btn-sm" style="background:var(--blue-soft);color:var(--blue-ink)" data-a="nuevoEquipo">+ Agregar</button></div>
     ${S.p.equipoForm ? equipoForm() : ''}
     ${eqs.length ? `<div class="list">${eqs.map(e => { const m = modeloDeEquipo(e); return `<div class="li" style="flex-direction:column;align-items:stretch;gap:8px"><button data-a="fichaEquipo" data-id="${e.id}" style="border:0;background:none;padding:0;display:flex;align-items:center;gap:8px;text-align:left;color:inherit"><span style="flex:1;display:flex;flex-direction:column;gap:2px"><span class="b">${esc(e.tipo)}</span><span class="small muted">${esc([e.marca,e.modelo].filter(Boolean).join(' ') || 'Sin marca cargada')}${e.serie?' · N.º '+esc(e.serie):''}</span></span><span class="pill ${m?'p-blue':'p-gray'}">${m?'Ficha técnica':'Crear ficha'}</span></button>
@@ -585,6 +598,30 @@ V.ordenNueva = () => {
   </form>`;
 };
 
+V.ordenEditar = () => {
+  const o = repo.orden(S.p.id); if(!o) return V.inicio();
+  const c = repo.cliente(o.clienteId) || {}, e = repo.equipo(o.equipoId) || {};
+  const d = S.p.d || (S.p.d = {eqTipo:e.tipo || 'Cinta de correr', eqMarca:e.marca || '', eqModelo:e.modelo || '', eqSerie:e.serie || '', falla:o.falla || '', estadoIngreso:o.estadoIngreso || '', modalidad:o.modalidad || 'Lo trae', transporte:o.transporte || 0, fotos:(o.fotos || []).slice()});
+  const firmada = o.firmaIngreso || o.firmaRecibo, pagado = transPago(o);
+  return header({titulo:`Editar orden #${String(o.num).padStart(4,'0')}`, atras:'Orden', extra:`<span style="color:var(--navy-muted);font-weight:600">${esc(c.nombre)}</span>`}) + `<form class="main gut" id="f-orden-ed" novalidate>
+    ${firmada ? '<div class="warnbox"><span class="b" style="color:var(--warn-ink)">Esta orden ya está firmada</span><span class="small b">Si cambiás datos importantes, conviene que el cliente vuelva a firmar el documento.</span></div>' : ''}
+    <h2>Equipo</h2>
+    <div class="card">${o.equipoId ? '' : '<span class="small muted b">La orden no tenía equipo: se crea uno con estos datos.</span>'}
+      <label class="f"><span>Tipo</span><select class="in" data-in="ord" data-k="eqTipo">${['Cinta de correr','Bicicleta fija','Elíptico','Multigym','Máquina de placas','Otro'].map(t => `<option ${d.eqTipo === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      <div class="grid2"><label class="f"><span>Marca</span><input class="in" value="${esc(d.eqMarca)}" data-in="ord" data-k="eqMarca"></label><label class="f"><span>Modelo</span><input class="in" value="${esc(d.eqModelo)}" data-in="ord" data-k="eqModelo"></label></div>
+      <label class="f"><span>N.º de serie (opcional)</span><input class="in" value="${esc(d.eqSerie)}" data-in="ord" data-k="eqSerie"></label></div>
+    <h2>Fotos del equipo</h2>
+    <div class="photos">${d.fotos.map((f, i) => `<div style="position:relative"><img src="${f}" alt="Foto ${i + 1}"><button type="button" data-a="fotoQuitar" data-i="${i}" aria-label="Quitar foto ${i + 1}" style="position:absolute;top:4px;right:4px;width:30px;height:30px;border-radius:15px;border:0;background:#A4231A;color:#FFFFFF;font-weight:800;font-size:16px">×</button></div>`).join('')}
+      <label class="ph" style="cursor:pointer">${ic('cam',28,2)} Agregar foto<input type="file" accept="image/*" capture="environment" data-in="foto" hidden multiple></label></div>
+    <h2>Falla y estado</h2>
+    <label class="f"><span>Detalle de la falla</span><textarea class="in" data-in="ord" data-k="falla">${esc(d.falla)}</textarea></label>
+    <label class="f"><span>Estado al ingresar</span><input class="in" value="${esc(d.estadoIngreso)}" data-in="ord" data-k="estadoIngreso"></label>
+    <h2>¿Cómo llega el equipo?</h2>
+    <div class="grid3">${['Lo trae','Lo retiramos','En domicilio'].map(m => `<button type="button" class="btn ${d.modalidad===m?'':'btn-line'}" style="${d.modalidad===m?'background:var(--blue-soft);color:var(--blue-ink);border:2.5px solid var(--blue)':''}" data-a="ordMod" data-v="${m}">${m}</button>`).join('')}</div>
+    ${d.modalidad !== 'Lo trae' ? `<label class="f"><span>Transporte ($)</span><input class="in num" inputmode="numeric" value="${d.transporte || ''}" data-in="ordNum" data-k="transporte"></label>${pagado ? `<span class="small b" style="color:var(--warn-ink)">El transporte ya se cobró (${plata(pagado.monto)}). Si cambiás el monto, se actualiza también ese cobro.</span>` : ''}` : ''}
+    <button type="submit" class="btn btn-main btn-big">Guardar cambios</button>
+    <button type="button" class="btn btn-line" data-a="volver">Cancelar</button></form>`;
+};
 V.orden = () => {
   const o = repo.orden(S.p.id); if(!o) return V.inicio();
   const c = repo.cliente(o.clienteId) || {}; const e = repo.equipo(o.equipoId) || {};
@@ -595,13 +632,15 @@ V.orden = () => {
 };
 function ordenTab(o, c){
   const idx = ESTADOS.indexOf(o.estado);
-  return `${o.fotos.length ? `<div class="card"><h2>Fotos de ingreso</h2><div class="photos">${o.fotos.map((f,i)=>`<img src="${f}" alt="Foto ${i+1}">`).join('')}</div></div>` : ''}
+  return `<div class="grid2"><button class="btn btn-line" data-a="editarOrden" data-id="${o.id}">Editar orden</button><button class="btn btn-line" data-a="editarCliente" data-id="${c.id}">Editar cliente</button></div>
+    ${o.fotos.length ? `<div class="card"><h2>Fotos de ingreso</h2><div class="photos">${o.fotos.map((f,i)=>`<img src="${f}" alt="Foto ${i+1}">`).join('')}</div></div>` : ''}
     <div class="card"><h2>Falla informada</h2><span style="font-weight:600;color:var(--ink-2);line-height:1.45">${esc(o.falla || 'Sin detalle')}</span>${o.estadoIngreso?`<span class="small muted b">Al ingresar: ${esc(o.estadoIngreso)}</span>`:''}</div>
     ${fechaCard(o)}
     <div class="card"><h2>Seguimiento</h2><div class="steps">${ESTADOS.map((s,i) => `<div class="step"><span class="dot ${i<idx?'done':i===idx?'now':''}"></span><span style="flex:1;font-weight:${i===idx?800:i<idx?700:600};color:${i>idx?'var(--muted)':'var(--ink)'}">${s}</span></div>`).join('')}</div>
       ${idx < ESTADOS.length-1 ? `<button class="btn btn-dark" data-a="avanzar" data-id="${o.id}">Pasar a "${ESTADOS[idx+1]}"</button>` : ''}</div>
     <div class="card"><span class="small muted b">${esc(o.modalidad)}${o.transporte?' · transporte '+plata(o.transporte):''}</span></div>
     ${transporteCard(o)}
+    ${o.estado === 'Entregado' ? recordatorioCard(c, true) : ''}
     <label class="f card"><span>Técnico responsable${o.garantiaDe ? ' · vuelve por garantía de la orden #' + (repo.orden(o.garantiaDe)||{}).num : ''}</span><select class="in" data-in="tecnico"><option value="">Sin asignar</option>${repo.db.usuarios.filter(u => u.rol !== 'atencion').map(u => `<option value="${u.id}" ${o.tecnico===u.id?'selected':''}>${esc(u.nombre)}</option>`).join('')}</select></label>
     ${o.modalidad !== 'Lo trae' && o.estado !== 'Entregado' ? (() => { const v = repo.db.visitas.find(x => x.ordenId === o.id && x.estado !== 'Terminado'); return v ? `<button class="btn btn-soft" data-a="dia" data-v="${v.fecha}">${esc(v.tipo)} agendado: ${diaLargo(v.fecha)}</button>` : `<button class="btn btn-main" data-a="agendarOrden" data-id="${o.id}">Agendar ${o.estado === 'Listo' ? 'entrega' : 'retiro'}</button>`; })() : ''}
     ${(() => { const m = modeloDeEquipo(repo.equipo(o.equipoId)); return m ? `<button class="btn btn-line" data-a="abrirModelo" data-id="${m.id}">Ficha técnica y qué llevar · ${esc(m.marca)} ${esc(m.modelo)}</button>` : ''; })()}
@@ -696,6 +735,7 @@ V.doc = () => {
         <div><div class="lbl">Teléfono</div>${esc(c.tel)}</div><div><div class="lbl">Equipo</div>${esc([e.tipo,e.marca,e.modelo].filter(Boolean).join(' '))}</div>
       </div>
       ${tipo==='ingreso' ? `<div class="box"><div class="lbl">Falla informada</div>${esc(o.falla)}<div class="lbl" style="margin-top:6px">Estado al ingresar</div>${esc(o.estadoIngreso||'—')}<div class="lbl" style="margin-top:6px">Modalidad</div>${esc(o.modalidad)}${o.transporte?' · transporte '+plata(o.transporte)+' (aparte)':''}</div>
+        ${o.fotos.length ? `<div class="box"><div class="lbl">Fotos del equipo al ingresar</div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">${o.fotos.slice(0, 6).map((f, i) => `<img src="${f}" alt="Foto ${i + 1}" style="width:206px;height:155px;object-fit:cover;border:1px solid #999999">`).join('')}</div>${o.fotos.length > 6 ? `<div style="font-size:10px;margin-top:4px">y ${o.fotos.length - 6} fotos más guardadas en la orden</div>` : ''}</div>` : ''}
         <div style="font-size:11px"><b>Comprobante único</b> para retirar el equipo. El service no incluye motor, placa, computadora ni correa.</div>
         ${condicionesDoc()}
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:30px;font-size:11px;font-weight:800;text-align:center"><div>${o.firmaIngreso ? `<img src="${o.firmaIngreso}" alt="Firma" style="display:block;height:58px;max-width:100%;margin:0 auto -4px">` : ''}<div style="border-top:1.5px solid #111111;padding-top:6px">Firma del cliente${o.firmaIngresoFecha ? ' · ' + fecha(o.firmaIngresoFecha) : ''}</div></div><div style="border-top:1.5px solid #111111;padding-top:6px">Recibió</div></div>`
@@ -1594,7 +1634,7 @@ function linkResenaDe(c){ const base = repo.db.config.linkResena || '[link de re
 function msgResena(c){ return `¡Qué bueno, ${nCorto(c)}! Gracias por confiar en nosotros. Somos un negocio familiar de Salta y tu opinión nos ayuda a que otros nos encuentren. Si tenés un minuto, dejanos tu reseña acá: ${linkResenaDe(c)}\n\nY si nos recomendás a alguien que nos contrata, tu próximo service tiene ${repo.db.config.descReferido}% de descuento.`; }
 function serviceAnual(){
   const cf = repo.db.config, res = [];
-  repo.db.equipos.forEach(e => { const c = repo.cliente(e.clienteId); if(!c || c.recordatorios === false) return;
+  repo.db.equipos.forEach(e => { const c = repo.cliente(e.clienteId); if(!c || c.recordatorios === false || c.proxService) return;
     const os = repo.db.ordenes.filter(o => o.equipoId === e.id); if(os.some(o => o.estado !== 'Entregado')) return;
     const ult = os.filter(o => o.entregada).sort((a, b) => b.entregada.localeCompare(a.entregada))[0]; if(!ult) return;
     const prox = new Date(ult.entregada); prox.setFullYear(prox.getFullYear() + 1); const falta = Math.ceil((prox - Date.now()) / 864e5);
@@ -1626,6 +1666,7 @@ function avisosLista(){
     A.push({g:'Seguimiento a los 7 días', cls:'p-blue', t:`${nCorto(c)} · orden #${o.num}`, d:`Entregado hace ${s.dias} días. Preguntale cómo anda el equipo.`, wa:waLink(c.tel, msgSeguimiento(o)), mark:'segEnviado', id:o.id, extra:`<button class="btn btn-line btn-sm" data-a="segYaHablo" data-id="${o.id}">Ya habló</button>`}); });
   db.ordenes.forEach(o => { if(!o.seg || o.seg.estado !== 'Enviado') return; const c = repo.cliente(o.clienteId) || {};
     A.push({g:'Esperando respuesta del seguimiento', cls:'p-gray', t:`${nCorto(c)} · orden #${o.num}`, d:'Cuando conteste, marcá cómo le fue.', extra:`<a class="btn btn-wa btn-sm" href="${waLink(c.tel, msgResena(c))}" target="_blank" rel="noopener" data-a="segBien" data-id="${o.id}">Respondió bien: mandar reseña</a><button class="btn btn-line btn-sm" data-a="segMal" data-id="${o.id}">Tiene un problema</button>`}); });
+  db.clientes.filter(c => c.recordatorios !== false && c.proxService && c.proxService <= diaStr(7) && c.avisoProx !== c.proxService).forEach(c => A.push({g:'Mantenimiento programado', cls:'p-note', t:nCorto(c), d:c.proxService < h ? 'Se pasó la fecha: ' + diaLargo(c.proxService).toLowerCase() : 'Le toca el ' + diaLargo(c.proxService).toLowerCase(), wa:waLink(c.tel, `Hola ${nCorto(c)}! Te escribimos de Clínica del Gym. Se acerca la fecha del mantenimiento de tu equipo, como habíamos quedado. ¿Querés que coordinemos una visita?`), mark:'avisoProx', id:c.id}));
   serviceAnual().filter(x => !x.c.avisoAnual || diasDesde(x.c.avisoAnual) > 30).forEach(x => A.push({g:'Service anual', cls:'p-note', t:`${nCorto(x.c)} · ${eqTxt(x.e)}`, d:x.falta >= 0 ? `Se cumple el año en ${x.falta} días` : `Se cumplió hace ${-x.falta} días`, wa:waLink(x.c.tel, msgAnual(x)), mark:'avisoAnual', id:x.c.id}));
   const c = consumo(); if(c.sistematico) A.push({g:'Camioneta', cls:'p-bad', t:`Consume ${Math.round(c.pct)} % más de lo habitual`, d:`Antes ${fmtKmL(c.base)}, ahora ${fmtKmL(c.rec)}. Viene así en las últimas cargas.`, a:'verVehiculo'});
   const v = db.vehiculo, cs = cargasOrd(), kmAct = cs.length ? cs[cs.length - 1].km : 0;
@@ -2277,6 +2318,12 @@ document.addEventListener('click', async (ev) => {
     case 'firmaBorrar': { const cv = $('#firma-pad'); if(cv){ cv.getContext('2d').clearRect(0, 0, cv.width, cv.height); cv.dataset.vacio = '1'; } break; }
     case 'firmaGuardar': { const cv = $('#firma-pad'), o = repo.orden(id); if(!cv || cv.dataset.vacio){ toast('Falta que el cliente firme'); break; } const img = firmaRecortada(cv); if(!img){ toast('Falta que el cliente firme'); break; }
       const k = cv.dataset.k; o[k] = img; o[k + 'Fecha'] = hoy(); if(k === 'firmaRecibo' && !o.reciboEnviado){ o.reciboEnviado = hoy(); o.seg = {estado:'Programado'}; } S.p.refirmar = false; repo.upsert('ordenes', o); toast('Firma guardada'); render(); break; }
+    case 'editarOrden': ir('ordenEditar', {id}); break;
+    case 'fotoQuitar': S.p.d.fotos.splice(+el.dataset.i, 1); render(); break;
+    case 'recSet': { const c = repo.cliente(id); c.recordatorios = true; c.proxService = sumarMeses(+v); repo.upsert('clientes', c); toast('Se le recuerda el ' + diaLargo(c.proxService).toLowerCase()); render(); break; }
+    case 'recOn': { const c = repo.cliente(id); c.recordatorios = true; repo.upsert('clientes', c); toast('Se le va a recordar el mantenimiento'); render(); break; }
+    case 'recOff': { const c = repo.cliente(id); c.recordatorios = false; c.proxService = null; repo.upsert('clientes', c); toast('No se le mandan recordatorios'); render(); break; }
+    case 'avisoProx': { const c = repo.cliente(id); c.avisoProx = c.proxService; repo.guardar(); setTimeout(render, 300); break; }
     case 'gsSinFoto': S.p.d.foto = ''; render(); break;
     case 'verVehiculo': ir('vehiculo', {}); break;
     case 'verHerramientas': ir('herramientas', {}); break;
@@ -2325,6 +2372,7 @@ document.addEventListener('change', async (ev) => {
   if(t === 'gsFoto' && el.files[0]){ const d = await comprimir(el.files[0]); if(d){ S.p.d.foto = d; toast('Foto agregada'); } render(); return; }
   if(t === 'gsLleno'){ S.p.d.lleno = el.checked; return; }
   if(t === 'precioLinea'){ const o = repo.orden(S.p.id); o.pres.items[+el.dataset.i].precio = Number(digitos(el.value)); repo.upsert('ordenes', o); render(); return; }
+  if(t === 'recFecha'){ const c = repo.cliente(el.dataset.k); c.recordatorios = true; c.proxService = el.value || null; repo.upsert('clientes', c); if(el.value) toast('Se le recuerda el ' + diaLargo(el.value).toLowerCase()); render(); return; }
   if(t === 'venc'){ const x = repo.db.vehiculo.venc.find(y => y.id === el.dataset.k); x.fecha = el.value; repo.guardar(); render(); return; }
   if(t === 'ab' || t === 'dsSel'){ S.p.d[el.dataset.k] = el.value; render(); return; }
   if(t === 'ds'){ render(); return; }
@@ -2361,6 +2409,16 @@ document.addEventListener('submit', (ev) => {
   if(f.id === 'f-eq'){
     repo.upsert('equipos', {id:uid(), clienteId:S.p.id, tipo:$('#eq-tipo').value, marca:$('#eq-marca').value.trim(), modelo:$('#eq-modelo').value.trim(), serie:$('#eq-serie').value.trim()});
     S.p.equipoForm = false; toast('Equipo agregado'); render(); return;
+  }
+  if(f.id === 'f-orden-ed'){
+    const o = repo.orden(S.p.id), d = S.p.d; if(!String(d.falla).trim()){ toast('Contá qué le pasa al equipo'); return; }
+    let e = repo.equipo(o.equipoId);
+    if(!e){ e = repo.upsert('equipos', {id:uid(), clienteId:o.clienteId, tipo:d.eqTipo, marca:'', modelo:'', serie:''}); o.equipoId = e.id; }
+    Object.assign(e, {tipo:d.eqTipo, marca:String(d.eqMarca).trim(), modelo:String(d.eqModelo).trim(), serie:String(d.eqSerie).trim()});
+    const tr = d.modalidad === 'Lo trae' ? 0 : (Number(d.transporte) || 0), pg = transPago(o);
+    if(pg){ if(tr) pg.monto = tr; else o.cobros = o.cobros.filter(k => k !== pg); }
+    Object.assign(o, {falla:String(d.falla).trim(), estadoIngreso:String(d.estadoIngreso).trim(), modalidad:d.modalidad, transporte:tr, fotos:d.fotos.slice()});
+    repo.upsert('ordenes', o); toast('Orden actualizada'); volver(); return;
   }
   if(f.id === 'f-orden'){
     const d = S.p.d; let eqId = d.equipoId;

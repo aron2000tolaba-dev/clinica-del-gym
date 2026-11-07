@@ -1,7 +1,7 @@
 /* Modo sin señal: guarda la app en el celular. La página se busca primero en internet
    (así siempre llega la última versión) y, si no hay señal, se usa la copia guardada. */
-const VERSION = 'cdg-2026-11-05-1';
-const ARCHIVOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png',
+const VERSION = 'cdg-2026-11-05-2';
+const ARCHIVOS = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
   './vendor/supabase.js', './vendor/591.supabase.js', './vendor/qrcode.js', './vendor/html2canvas.min.js', './vendor/jspdf.umd.min.js'];
 self.addEventListener('install', e => { e.waitUntil(caches.open(VERSION).then(c => c.addAll(ARCHIVOS)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim())); });
