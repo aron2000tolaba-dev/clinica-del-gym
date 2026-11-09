@@ -588,6 +588,7 @@ V.clienteForm = () => {
     <div class="grid2"><label class="f"><span>Localidad</span><input class="in" id="cli-loc" value="${esc(d.localidad)}" data-in="cli" data-k="localidad"></label>
       <label class="f"><span>Provincia</span><input class="in" id="cli-prov" value="${esc(d.provincia)}" data-in="cli" data-k="provincia"></label></div>
     <label class="f"><span>Ubicación exacta (opcional)</span><input class="in" id="cli-ubic" value="${esc(d.ubic ?? (d.mapLink || (d.lat != null && d.lat !== '' && !d.ubicAprox ? d.lat + ', ' + d.lng : '')))}" data-in="cli" data-k="ubic" placeholder="Pegá el link de Google Maps o las coordenadas"><span class="tiny muted b" style="font-weight:600">Sirve el link que te manda el cliente por WhatsApp. Si no ponés nada, se usa la dirección escrita.</span></label>
+    <button type="button" class="btn btn-soft" data-a="ubicAqui">${ic('pin', 20, 2.2)} Estoy en la casa del cliente: usar mi ubicación</button>
     <label class="f"><span>Email (opcional)</span><input class="in" id="cli-email" type="email" value="${esc(d.email)}" data-in="cli" data-k="email"></label>
     <label class="f"><span>¿Cómo nos conoció?</span><select class="in" id="cli-origen" data-in="cli" data-k="origen">${['','Recomendación','Instagram','Facebook','Google','Pasó por el local','Otro'].map(o => `<option value="${o}" ${d.origen===o?'selected':''}>${o||'Elegir…'}</option>`).join('')}</select></label>
     ${d.origen === 'Recomendación' ? `<label class="f"><span>¿Quién lo recomendó?</span><select class="in" data-in="cli" data-k="refDe"><option value="">Elegir cliente…</option>${repo.db.clientes.filter(x => !ed || x.id !== ed.id).sort((a,b)=>a.nombre.localeCompare(b.nombre)).map(x => `<option value="${x.id}" ${d.refDe===x.id?'selected':''}>${esc(x.nombre)}</option>`).join('')}</select><span class="tiny muted b" style="font-weight:600">Esa persona gana ${repo.db.config.descReferido} % de descuento en su próximo service.</span></label>` : ''}
@@ -622,6 +623,7 @@ V.ficha = () => {
     </div>
     <div class="card"><h2>Datos</h2>
       ${[['Teléfono',c.tel],[c.tipoDoc,c.doc],['Dirección',[c.dir,c.localidad,c.provincia].filter(Boolean).join(', ')],['Email',c.email],['Cómo nos conoció',c.origen]].filter(x=>x[1]).map(([k,v]) => `<div style="display:flex;flex-direction:column;gap:2px"><span class="tiny b muted">${esc(k).toUpperCase()}</span><span class="b" style="font-weight:600">${esc(v)}</span></div>`).join('')}
+      ${exacta(c) ? `<span class="small b" style="color:var(--good-ink)">Ubicación exacta guardada</span>` : ''}<button class="btn btn-soft btn-sm" data-a="ubicAquiCli" data-id="${c.id}">${ic('pin', 18, 2.2)} ${exacta(c) ? 'Cambiar por mi ubicación actual' : 'Estoy acá: guardar mi ubicación como la del cliente'}</button>
       ${c.notas ? `<div class="note" style="font-weight:600">${esc(c.notas)}</div>` : ''}
       ${c.descPend ? `<div class="note" style="background:var(--good-soft);color:var(--good-ink);font-weight:700">Tiene ${c.descPend.pct} % de descuento en el próximo service por recomendar a ${esc(c.descPend.por)}.</div>` : ''}
       ${c.resena ? `<span class="small b" style="color:var(--good-ink)">Dejó reseña en Google el ${fecha(c.resena)}</span>` : c.resenaPedida ? `<div class="between"><span class="small muted b">Se le pidió reseña el ${fecha(c.resenaPedida)} (código ${esc(c.codResena || '')})</span><button class="btn btn-soft btn-sm" data-a="resenaOk" data-id="${c.id}">Ya la dejó</button></div>` : ''}
@@ -3023,6 +3025,12 @@ document.addEventListener('click', async (ev) => {
     case 'baseAqui': { if(!navigator.geolocation){ toast('Este celular no da la ubicación'); break; } toast('Buscando tu ubicación…');
       navigator.geolocation.getCurrentPosition(p => { db.config.base = {lat:+p.coords.latitude.toFixed(6), lng:+p.coords.longitude.toFixed(6)}; db.config.baseOk = true; repo.guardar(); toast('Listo: el taller quedó en tu ubicación actual'); render(); },
         e => toast(e.code === 1 ? 'Dale permiso de ubicación a la app' : 'No se pudo obtener la ubicación'), {enableHighAccuracy:true, timeout:15000}); break; }
+    case 'ubicAqui': case 'ubicAquiCli': { if(!navigator.geolocation){ toast('Este celular no da la ubicación'); break; } toast('Buscando tu ubicación…');
+      navigator.geolocation.getCurrentPosition(p => { const lat = +p.coords.latitude.toFixed(6), lng = +p.coords.longitude.toFixed(6), prec = Math.round(p.coords.accuracy || 0);
+        const aviso = prec > 100 ? ` Ojo: precisión de ±${prec} m, probá afuera o con el GPS prendido.` : ` Precisión ±${prec} m.`;
+        if(a === 'ubicAqui'){ S.p.d.ubic = lat + ', ' + lng; toast('Ubicación cargada.' + aviso); render(); return; }
+        const c = repo.cliente(id); c.lat = lat; c.lng = lng; c.ubicAprox = false; c.mapLink = ''; repo.upsert('clientes', c); toast('Ubicación de ' + nCorto(c) + ' guardada.' + aviso); render(); },
+        e => toast(e.code === 1 ? 'Dale permiso de ubicación a la app (en el candado de arriba o en Ajustes)' : 'No se pudo obtener la ubicación. Prendé el GPS y probá de nuevo.'), {enableHighAccuracy:true, timeout:20000, maximumAge:0}); break; }
     case 'gsSinFoto': S.p.d.foto = ''; render(); break;
     case 'verVehiculo': ir('vehiculo', {}); break;
     case 'verHerramientas': ir('herramientas', {}); break;
