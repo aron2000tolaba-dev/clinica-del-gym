@@ -1,19 +1,33 @@
-# La Clínica del Gym
+# Bot de WhatsApp · Clínica del Gym
 
-App del taller: clientes, órdenes, presupuestos, cobros, agenda y rutas, inventario, abonos, empleados y números.
-Se instala en el celular como app (PWA) y guarda los datos en Supabase.
+Corre en Railway y se vincula al WhatsApp del negocio como **dispositivo vinculado** (igual que WhatsApp Web). El celular sigue funcionando normal.
 
-## Cómo está armada
-- `index.html`: toda la app (pantallas y lógica).
-- `vendor/`: librerías incluidas para que funcione sin señal (Supabase, PDF, QR).
-- `sw.js` y `manifest.webmanifest`: instalación en el celular y modo sin señal.
-- `supabase/`: el código SQL de la base (tablas, permisos e historial) y de los roles.
+## Qué hace
 
-## Datos y permisos
-- Cada persona entra con su email y contraseña (Supabase → Authentication).
-- El rol (administrador, técnico, atención) se asigna con `supabase/2-roles.sql`.
-- La contabilidad y los gastos ajenos los ve solo el administrador; lo bloquea la base, no solo la pantalla.
-- Cada cambio queda en el historial: quién, qué y cuándo.
+**Con clientes** (solo en el horario que pongas en la app → Más → Bot de WhatsApp):
+- Si preguntan por su equipo y tienen una orden abierta, contesta el estado y la fecha estimada.
+- Si preguntan por un repuesto que está en el inventario, contesta si hay y el precio aproximado. Si no está seguro, no contesta.
+- Si no, manda un saludo (una vez por día por persona).
+- Fuera de horario manda un aviso de cerrado (máximo uno cada 12 horas).
+- Si alguien de ustedes escribe en ese chat, el bot se calla en ese chat (12 horas por defecto).
 
-## Publicación
-Vercel publica automáticamente cada cambio que se sube a la rama `main`.
+**Con la familia** (los números cargados en Empleados):
+- Audio o texto con un gasto → contesta lo que entendió y lo guarda cuando le dicen "sí".
+- La nafta pide litros y km, igual que la app.
+- El dueño del número también puede mandárselo en el chat consigo mismo.
+
+## Variables en Railway
+
+| Variable | Qué poner |
+|---|---|
+| `BOT_EMAIL` | el email de la cuenta del bot en Supabase |
+| `BOT_PASSWORD` | su contraseña |
+| `PANEL_CLAVE` | una clave para ver el panel |
+| `GROQ_API_KEY` | la clave de Groq (para entender audios) |
+| `WA_NUMERO` | opcional: 5493875563583, para vincular con código en vez de QR |
+
+Volumen montado en `/data` (ahí queda la sesión de WhatsApp; sin volumen hay que volver a vincular en cada actualización).
+
+## Aviso
+
+WhatsApp no permite oficialmente bots en números comunes. Por eso el bot manda pocos mensajes, con pausas y un tope diario, pero existe el riesgo de que WhatsApp bloquee el número.
